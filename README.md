@@ -4,6 +4,12 @@ An independent English, mobile-friendly research web app by Honghao Zhao.
 Once published, visitors open the HTTPS website directly. They do not need
 Python, a local server, a GitHub account, or an app installation.
 
+## Mobile workspace
+
+On phones, the app opens directly into a single-screen live workspace. Use **Tools** to open the side panel. Primary controls stay on the main screen. Opening tools does not stop the camera or a recording. Rotate the phone to use the landscape layout.
+
+Simulated eyes and the hand-camera preview remain visible together. Camera start/stop and eye-motion pause are at the bottom. **Setup** contains models, camera options, replay and calibration; **Scene** contains the optional 3D view; **Results** contains plots and comparisons.
+
 ## Publish with the GitHub website
 
 1. Create a new **public** repository, for example `binocular-motion-lab`. GitHub Free supports
@@ -38,8 +44,7 @@ Use a current Safari or Chrome browser; if an embedded app browser cannot access
 the camera, open the link in the full browser. Tap Start camera and allow camera
 access. Select Front or Rear before starting; stop before switching cameras.
 Keep the page visible and the screen awake. Keep a fixed orientation during a
-recording; start a new clip after changing orientation. Use the top navigation
-to jump between controls, live view and results.
+recording; start a new clip after changing orientation. Use Tools to open secondary controls and results; the live view stays on the main screen.
 
 Models are downloaded on first use and run locally. Startup depends on network
 speed and the phone. Camera video, recordings and analysis stay in the browser;

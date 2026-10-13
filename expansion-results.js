@@ -23,4 +23,4 @@ for(const [domain,title] of Object.entries(domains)){
  wrap.append(table);panel.append(wrap);
 }
 const note=document.createElement('p');note.className='muted';note.textContent='Preparation, training and batch evaluation took '+(r.training_elapsed_seconds/3600).toFixed(2)+' hours. Valid binocular training samples increased from about 21.04M to 52.16M; time samples are not independent observations. The 284 / 61 / 62 subject split is fixed, with all test-subject sessions excluded from training. External data uses 5 training, 2 validation and 3 test subjects, supervising only the right eye. Test reuse makes this exploratory; real fingertip following and human-like robot behavior remain unvalidated.';panel.append(note);
-document.querySelector('main > section').append(panel);
+document.getElementById('comparisonPanels').append(panel);
