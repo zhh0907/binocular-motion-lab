@@ -1,4 +1,5 @@
-import {FingerCamera} from './camera.js?v=cal1';
+import {simplifyUI} from './simplify-ui.js';
+import {FingerCamera} from './camera.js?v=review7';
 import {ScreenCalibration} from './calibration.js';
 import {rotateCameraRay} from './calibration-math.js';
 import * as T from './vendor/three.module.js';
@@ -108,7 +109,7 @@ function render(){if(!current)step(false);const {p,e,a,ideal,t}=current;target.p
  const cw=$('chest').clientWidth,ch=$('chest').clientHeight;if(cw&&ch)chestRenderer.setSize(cw,ch,false);chestCamera.aspect=isCamera()&&finger.video.videoWidth?finger.video.videoWidth/finger.video.videoHeight:(cw&&ch?cw/ch:1.6);chestCamera.fov=isCamera()?+$('cameraFov').value:60;$('chest').querySelector('.caption').textContent=isCamera()&&calibration.enabled?'Virtual camera · Calibrated projection (undistorted)':`Virtual chest camera · Vertical FOV ${chestCamera.fov}°`;chestCamera.updateProjectionMatrix();
  if(isCamera()&&calibration.enabled){const i=calibration.profile.intrinsics,n=chestCamera.near,f=chestCamera.far;chestCamera.projectionMatrix.set(2*i.fx/i.width,0,1-2*i.cx/i.width,0,0,2*i.fy/i.height,2*i.cy/i.height-1,0,0,0,-(f+n)/(f-n),-2*f*n/(f-n),0,0,-1,0);chestCamera.projectionMatrixInverse.copy(chestCamera.projectionMatrix).invert();}
  cameraBody.visible=false;lines.forEach(l=>l.visible=false);if(cw&&ch)chestRenderer.render(scene,chestCamera);cameraBody.visible=true;lines.forEach(l=>l.visible=true);
- const ea=eyeInset.clientWidth/eyeInset.clientHeight,ey=Math.max(.033,.055/ea);eyeCamera.left=-ey*ea;eyeCamera.right=ey*ea;eyeCamera.top=ey;eyeCamera.bottom=-ey;if(calibration.enabled&&document.fullscreenElement===eyeInset){const s=calibration.profile.screen;eyeCamera.left=-s.widthM/2;eyeCamera.right=s.widthM/2;eyeCamera.top=s.heightM/2;eyeCamera.bottom=-s.heightM/2;}eyeCamera.updateProjectionMatrix();eyeRenderer.setSize(eyeInset.clientWidth,eyeInset.clientHeight,false);eyeRenderer.render(scene,eyeCamera);
+ const ea=eyeInset.clientWidth/eyeInset.clientHeight,ey=Math.max(.033,.055/ea);eyeCamera.left=-ey*ea;eyeCamera.right=ey*ea;eyeCamera.top=ey;eyeCamera.bottom=-ey;if(calibration.enabled&&document.fullscreenElement===eyeInset){const s=calibration.profile.screen;eyeCamera.left=-s.widthM/2;eyeCamera.right=s.widthM/2;eyeCamera.top=s.heightM/2;eyeCamera.bottom=-s.heightM/2;}eyeCamera.updateProjectionMatrix();eyeRenderer.setSize(eyeInset.clientWidth,eyeInset.clientHeight,false);eyeRenderer.domElement.style.transform=isCamera()&&!calibration.enabled&&finger.facing==='environment'?'scaleX(-1)':'';eyeRenderer.render(scene,eyeCamera);
  chestCamera.updateMatrixWorld();const cp=new T.Vector3(...p).project(chestCamera),inFrame=Math.abs(cp.x)<=1&&Math.abs(cp.y)<=1&&cp.z>=-1&&cp.z<=1;
  $('leftError').textContent=angularError(a.slice(0,2),ideal.slice(0,2)).toFixed(2)+'°';$('rightError').textContent=angularError(a.slice(2),ideal.slice(2)).toFixed(2)+'°';$('vergence').textContent=(a[0]-a[2]).toFixed(2)+'°';$('visible').textContent=inFrame?'Yes':'No';$('visible').style.color=inFrame?'#6adac3':'#ffae7d';
  $('status').textContent=`t = ${t.toFixed(2)} s · Left yaw/pitch (${a[0].toFixed(1)}, ${a[1].toFixed(1)})° / Right (${a[2].toFixed(1)}, ${a[3].toFixed(1)})° · 4 angles total; torsion = 0`;
@@ -127,4 +128,5 @@ function renderResults(){const task=filter.value;const entries=comparison.overal
 }
 filter.onchange=renderResults;renderResults();
 updateControls();let last=performance.now();function animate(now){if(playing){acc+=Math.min((now-last)/1000,.1)*(isCamera()?1:+$('speed').value);while(acc>=1/fps){step();acc-=1/fps;}}last=now;render();requestAnimationFrame(animate);}requestAnimationFrame(animate);
+simplifyUI();
 window.lab={scene,eyes,records,report,finger,get current(){return current;}};

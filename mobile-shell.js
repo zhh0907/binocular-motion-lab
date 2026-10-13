@@ -91,7 +91,7 @@ function initialize() {
       const host=camera?panes.Scene:visuals;if($('view').parentElement!==host)host.append($('view'));
       cameraGroup.hidden=!camera;blank.hidden=!!$('cameraVideo').srcObject;
       $('cameraStatus').hidden=!camera;
-      text(extra,camera?'Mirror preview · Yellow marker = fingertip':source==='data'?'Human gaze replay · Change recording in Tools':'Virtual target · Change motion in Tools');
+      text(extra,camera?(($('cameraPreview').dataset.facing==='environment'?'Rear camera · Natural preview':'Front camera · Mirror preview')+' · Yellow = fingertip'):source==='data'?'Human gaze replay · Change recording in Tools':'Virtual target · Change motion in Tools');
     }else{
       const recording=!$('recordStop').disabled;
       $('recordStart').classList.toggle('app-superseded',recording);$('recordStop').classList.toggle('app-superseded',!recording);

@@ -1,3 +1,4 @@
+import {cameraOrientation} from './camera-orientation.js';
 import {pixelToPlane} from './camera-math.js';
 const $=id=>document.getElementById(id);
 export class FingerCamera{
@@ -13,7 +14,7 @@ export class FingerCamera{
    if(!navigator.mediaDevices?.getUserMedia)throw Error('Use a camera-capable browser on localhost or HTTPS.');
    const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{width:{ideal:640},height:{ideal:480},facingMode:{ideal:$('cameraFacing').value},...this.calibration.constraints()}});
    if(token!==this.token){stream.getTracks().forEach(t=>t.stop());return;}
-   this.stream=stream;this.video.srcObject=stream;if(matchMedia('(max-width:760px)').matches)$('eyeFocus').scrollIntoView({block:'start'});await this.video.play();if(token!==this.token)return;this.calibration.lastRayError=false;this.calibration.refresh();
+   this.stream=stream;const orientation=cameraOrientation($('cameraFacing').value,stream.getVideoTracks()[0].getSettings());this.facing=orientation.facing;$('cameraPreview').style.transform=orientation.previewMirrored?'scaleX(-1)':'none';$('cameraPreview').dataset.facing=this.facing;this.video.srcObject=stream;if(matchMedia('(max-width:760px)').matches)$('eyeFocus').scrollIntoView({block:'start'});await this.video.play();if(token!==this.token)return;this.calibration.lastRayError=false;this.calibration.refresh();
    stream.getVideoTracks()[0].onended=()=>{this.stop();this.status('Camera disconnected. Reconnect it and start again.');};
    $('cameraStop').disabled=false;this.status('Loading the local hand detector…');
    const worker=this.worker=new Worker('./hand-worker.js');

@@ -79,3 +79,7 @@ camera-calibration tools. Those tools are not needed to open or run the website.
 - [Configure the publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 - [HTTPS](https://docs.github.com/en/pages/getting-started-with-github-pages/securing-your-github-pages-site-with-https)
 - [Upload limits](https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository)
+
+## Camera preview (review7)
+
+Actual track facing mode controls the preview: front mirrored, rear natural. The uncalibrated eye inset follows the preview direction. Calibrated display geometry and exported physical coordinates remain unchanged. Secondary geometry, scene and charts are collapsed. Physical iPhone Safari testing remains outstanding.
