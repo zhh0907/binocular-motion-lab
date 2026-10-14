@@ -1,85 +1,48 @@
 # Binocular Motion Lab
 
-An independent English, mobile-friendly research web app by Honghao Zhao.
-Once published, visitors open the HTTPS website directly. They do not need
-Python, a local server, a GitHub account, or an app installation.
+Browser-based binocular eye-motion simulation and gaze replay by [Honghao Zhao](https://zhh0907.github.io/).
 
-## Mobile workspace
+**[Open live demo](https://zhh0907.github.io/binocular-motion-lab/)** · [User guide](https://zhh0907.github.io/binocular-motion-lab/guide.html) · [Camera calibration](https://zhh0907.github.io/binocular-motion-lab/calibration-guide.html)
 
-On phones, the app opens directly into a single-screen live workspace. Use **Tools** to open the side panel. Primary controls stay on the main screen. Opening tools does not stop the camera or a recording. Rotate the phone to use the landscape layout.
+## Overview
 
-Simulated eyes and the hand-camera preview remain visible together. Camera start/stop and eye-motion pause are at the bottom. **Setup** contains models, camera options, replay and calibration; **Scene** contains the optional 3D view; **Results** contains plots and comparisons.
+Explore simulated eye movements, replay public gaze recordings, and inspect model comparisons in an interactive 3D workspace. This repository contains the browser demo and bundled inference assets; it is not a complete training-code release.
 
-## Publish with the GitHub website
+- Interactive binocular simulation, target controls, and gaze replay.
+- Model comparisons and plots available through **Tools → Results**.
+- Optional camera controls and screen/camera calibration.
+- Responsive workspace for desktop and mobile browsers.
 
-1. Create a new **public** repository, for example `binocular-motion-lab`. GitHub Free supports
-   Pages from public repositories. Choose a different repository for each app.
-2. Extract this ZIP. Open the extracted `binocular-motion-lab` folder and upload its **contents**
-   using **Add file → Upload files**. Include the `vendor` and `recordings` folders
-   when present. **Do not upload the ZIP itself.** `index.html` must be visible at
-   the repository root, not inside an extra enclosing folder. Commit to `main`.
-3. Include the empty `.nojekyll` file. If it is hidden by your file explorer,
-   use **Add file → Create new file**, name it `.nojekyll`, and commit it.
-4. Open **Settings → Pages**. Under **Build and deployment**, choose
-   **Deploy from a branch**, branch **main**, folder **/ (root)**, then **Save**.
-5. Wait until the Pages deployment succeeds. Settings → Pages shows the real
-   **Visit site** link. It normally looks like
-   `https://YOUR-USERNAME.github.io/binocular-motion-lab/`. Keep HTTPS enabled.
+## Quick start
 
-The address above is a template, not an already published website. The actual
-owner and repository name determine the final URL. Changes uploaded to the
-selected branch are published automatically. If the first visit shows a 404,
-check the deployment status in Actions and confirm that index.html is at root.
+Open the live demo; no installation or GitHub account is needed. Use **Tools** for model selection, replay, calibration, and results. Camera access is optional and requires HTTPS or localhost.
 
-No custom workflow, npm install, backend, API key or secret is required.
-All individual files are below the 25 MiB browser-upload limit and each package
-contains fewer than 100 files. The simulator replay data is split without
-rounding or removing data. Keep the complete folder structure when uploading.
-Do not replace model or WASM binaries with Git LFS pointer files.
+For local use, serve this repository with a static HTTP server, for example:
 
-## Use on a phone
+```sh
+python -m http.server 8000
+```
 
-Open the **published HTTPS website**, not the github.com repository page.
-Use a current Safari or Chrome browser; if an embedded app browser cannot access
-the camera, open the link in the full browser. Tap Start camera and allow camera
-access. Select Front or Rear before starting; stop before switching cameras.
-Keep the page visible and the screen awake. Keep a fixed orientation during a
-recording; start a new clip after changing orientation. Use Tools to open secondary controls and results; the live view stays on the main screen.
+Then open `http://localhost:8000/`. Keep `vendor/`, `recordings/`, and the model JSON files beside the application. Do not open `index.html` directly through a file URL.
 
-Models are downloaded on first use and run locally. Startup depends on network
-speed and the phone. Camera video, recordings and analysis stay in the browser;
-the app does not upload them to GitHub or another server. Download recordings
-before closing or refreshing. Some browsers open downloaded videos in a preview;
-use Share → Save to Files if needed. Recording requires MediaRecorder and canvas
-capture; unavailable features show an explanatory message.
+## Repository map
 
-## App instructions and evidence limits
+| Files | Purpose |
+| --- | --- |
+| `index.html`, `app.js`, `engine.js` | Browser application and simulation |
+| `models.json`, `model.json` | Bundled model assets |
+| `comparison.json`, `report.json` | Evaluation summaries |
+| `recordings/` | Public gaze replay excerpts |
+| `camera*.js`, `calibration*.js` | Camera and calibration utilities |
+| `guide.html`, `calibration-guide.html` | Detailed usage instructions |
+| `vendor/`, `THIRD_PARTY_NOTICES.txt` | Bundled dependencies and attribution |
 
-Open [the user guide](guide.html) for the workflow, measurements and limitations.
-This is a research prototype, not a clinically validated diagnostic system.
-Existing checks use Chrome mobile emulation; physical iPhone/Android devices and
-Safari have not been tested in this environment. Phone inference speed varies.
+## Data and interpretation
 
-## Files
+Replay material includes attributed public GazeBaseVR excerpts. See the in-app guide and third-party notices for data provenance. Model comparisons are research results, not evidence of clinical validity. Simulated eye motion and uncalibrated camera controls should not be interpreted as calibrated clinical measurements.
 
-- `index.html`: website entry point
-- `guide.html`: English user guide
-- `vendor/`: local Three.js, MediaPipe SDK, WASM and model files
-- `.nojekyll`: publish the files directly
-- `MANIFEST.json`: SHA-256 hashes of bundled files
-- `THIRD_PARTY_NOTICES.txt`: attribution and third-party licenses
+Camera processing runs locally in the browser. Front-camera previews are mirrored; calibrated geometry and exported physical coordinates are unchanged. Mobile-emulation checks do not establish compatibility or performance on physical iPhone/Android devices.
 
-No personal camera captures, patient data or QA videos are included. The
-simulator includes attributed public GazeBaseVR excerpts and optional desktop
-camera-calibration tools. Those tools are not needed to open or run the website.
+## Deployment
 
-## GitHub documentation
-
-- [Create a Pages site](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site)
-- [Configure the publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
-- [HTTPS](https://docs.github.com/en/pages/getting-started-with-github-pages/securing-your-github-pages-site-with-https)
-- [Upload limits](https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository)
-
-## Camera preview (review7)
-
-Actual track facing mode controls the preview: front mirrored, rear natural. The uncalibrated eye inset follows the preview direction. Calibrated display geometry and exported physical coordinates remain unchanged. Secondary geometry, scene and charts are collapsed. Physical iPhone Safari testing remains outstanding.
+The live demo is hosted on GitHub Pages. Preserve `.nojekyll` and the complete asset structure. No backend, npm build, or API key is required for the published demo. Optional Python calibration tools are separate from browser operation.
