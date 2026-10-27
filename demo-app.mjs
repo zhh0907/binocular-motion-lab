@@ -1,6 +1,6 @@
 import * as T from './vendor/three.module.js';
 import {FingerCamera} from './camera.js?v=review7';
-import {DEMO_CASES,DEMO_FPS,DEMO_MODEL,DEMO_EYES,DemoSimulation,demoTarget} from './demo-presets.mjs?v=demo1';
+import {DEMO_CASES,DEMO_FPS,DEMO_MODEL,DEMO_EYES,DemoSimulation,demoTarget} from './demo-presets.mjs?v=demo-en1';
 const $=id=>document.getElementById(id);
 const choices=[...document.querySelectorAll('[data-case]')];
 choices.forEach(b=>b.disabled=true);
@@ -10,7 +10,7 @@ function eyeView(id){
   scene.add(new T.HemisphereLight(0xd5eaff,0x253245,2.6));
   const sun=new T.DirectionalLight(0xffffff,3);sun.position.set(-1,2,2);scene.add(sun);
   const renderer=new T.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));host.prepend(renderer.domElement);
-  renderer.domElement.setAttribute('aria-label',id==='eyeFocus'?'病例双眼的三维眼位':'正常模型的三维参考眼位');
+  renderer.domElement.setAttribute('aria-label',id==='eyeFocus'?'Patient’s binocular eye positions in 3D':'Normal-model reference eye positions in 3D');
   const camera=new T.OrthographicCamera(-.065,.065,.033,-.033,.01,2);camera.position.set(0,0,.18);camera.lookAt(0,0,0);
   const eyes=DEMO_EYES.map((position,i)=>{
     const root=new T.Group(),yaw=new T.Group(),pitch=new T.Group();root.position.set(...position);root.add(yaw);yaw.add(pitch);scene.add(root);
@@ -29,8 +29,8 @@ function eyeView(id){
 }
 
 async function start(){
-  const response=await fetch('./models-selected.json',{cache:'no-store'});if(!response.ok)throw Error('模型文件不可用');
-  const bundle=await response.json();if(bundle.fps!==DEMO_FPS||!bundle.models?.[DEMO_MODEL])throw Error('模型版本不匹配');
+  const response=await fetch('./models-selected.json',{cache:'no-store'});if(!response.ok)throw Error('Model file unavailable');
+  const bundle=await response.json();if(bundle.fps!==DEMO_FPS||!bundle.models?.[DEMO_MODEL])throw Error('Model version mismatch');
   const sim=new DemoSimulation(bundle.models[DEMO_MODEL]);
   const drawPatient=eyeView('eyeFocus'),drawReference=eyeView('referenceEyes');
   // Fixed camera projection for the simple demo; this is not a calibrated examination.
@@ -39,9 +39,9 @@ async function start(){
   let input='auto',playing=!matchMedia('(prefers-reduced-motion: reduce)').matches,acc=0,last=performance.now();
   const zero=[0,0,0,0];
   function playback(){
-    $('pauseDemo').textContent=playing?'暂停':'播放';
-    $('inputLabel').textContent=input==='auto'?'自动左右跟随':'摄像头食指跟随';
-    $('demoStatus').textContent=playing?(input==='auto'?'自动循环播放；可以暂停观察，也可以使用手指跟随。':'移动一根食指。跟踪丢失时保持当前眼位。'):'已暂停眼位运动；点击播放继续。';
+    $('pauseDemo').textContent=playing?'Pause':'Play';
+    $('inputLabel').textContent=input==='auto'?'Automatic left–right tracking':'Live fingertip tracking';
+    $('demoStatus').textContent=playing?(input==='auto'?'Automatic loop. Pause to inspect, or switch to live fingertip tracking.':'Move one index finger. Eye position holds when tracking is lost.'):'Eye motion paused. Press Play to continue.';
   }
   function reset(){sim.reset();acc=0;last=performance.now();drawPatient(zero);drawReference(zero);}
   function choose(key){
@@ -74,7 +74,7 @@ async function start(){
     const degrees=Math.atan2(x,z)*180/Math.PI;
     // Fixed frontal view: anatomical right is screen-left. No angle magnification.
     $('targetDot').style.left=`${Math.max(4,Math.min(96,50-degrees/35*46))}%`;
-    const phase=input==='live'?(finger.tracked?'跟随食指':'等待食指'):demoTarget(current?.time||0).phase;
+    const phase=input==='live'?(finger.tracked?'Following your finger':'Waiting for a fingertip'):demoTarget(current?.time||0).phase;
     if($('phase').textContent!==phase)$('phase').textContent=phase;
     $('cameraStart').hidden=input==='live';
   }
@@ -85,4 +85,4 @@ async function start(){
   choose(DEMO_CASES[0].key);playback();requestAnimationFrame(animate);
   window.demo=Object.freeze({sim,finger,choose,reset,get input(){return input;},get playing(){return playing;},get current(){return sim.current;}});
 }
-start().catch(error=>{$('demoStatus').textContent='演示加载失败，请刷新重试：'+error.message;$('demoStatus').classList.add('error');});
+start().catch(error=>{$('demoStatus').textContent='Demo failed to load. Refresh to retry: '+error.message;$('demoStatus').classList.add('error');});

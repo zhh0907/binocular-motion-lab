@@ -6,9 +6,9 @@ export const DEMO_FPS=250;
 export const DEMO_MODEL='gru_expanded_520';
 export const DEMO_EYES=Object.freeze([Object.freeze([-.032,0,0]),Object.freeze([.032,0,0])]);
 const definitions=[
-  ['conjugate','双眼向左受限','向虚拟人的左侧看时，两眼都明显跟不上；向右看仍能转动。'],
-  ['adduction','左眼内转受限','向虚拟人的右侧看时，左眼向鼻侧转动明显不足，另一眼继续跟随。'],
-  ['abduction','左眼外转受限','向虚拟人的左侧看时，左眼向外侧转动明显不足，另一眼继续跟随。']
+  ['conjugate','Both eyes: left limit','Both eyes have limited movement toward the simulated person’s left. Rightward movement is preserved.'],
+  ['adduction','Left eye: inward limit','When looking right, the left eye has limited inward movement toward the nose. The other eye continues to follow.'],
+  ['abduction','Left eye: outward limit','When looking left, the left eye has limited outward movement. The other eye continues to follow.']
 ];
 export const DEMO_CASES=Object.freeze(definitions.map(([template,title,description],i)=>Object.freeze({
   key:template,number:`0${i+1}`,title,description,
@@ -19,9 +19,9 @@ export const DEMO_CASES=Object.freeze(definitions.map(([template,title,descripti
 // One slow, continuous follow task, identical for all cases. Positions are metres.
 // Quintic easing makes target velocity and acceleration zero at each hold boundary.
 const phases=Object.freeze([
-  [1,0,0,'看向正中'],[2.5,0,-.36,'缓慢向左'],[1.5,-.36,-.36,'保持左侧'],
-  [2,-.36,0,'回到正中'],[.5,0,0,'保持正中'],[2.5,0,.36,'缓慢向右'],
-  [1.5,.36,.36,'保持右侧'],[2,.36,0,'回到正中'],[.5,0,0,'保持正中']
+  [1,0,0,'Look straight ahead'],[2.5,0,-.36,'Moving slowly left'],[1.5,-.36,-.36,'Holding left'],
+  [2,-.36,0,'Returning to center'],[.5,0,0,'Holding center'],[2.5,0,.36,'Moving slowly right'],
+  [1.5,.36,.36,'Holding right'],[2,.36,0,'Returning to center'],[.5,0,0,'Holding center']
 ]);
 export const DEMO_PERIOD=phases.reduce((sum,p)=>sum+p[0],0);
 export function demoTarget(time){
@@ -31,7 +31,7 @@ export function demoTarget(time){
     if(t<duration){const a=t/duration,s=a*a*a*(10+a*(-15+6*a));return {target:[from+(to-from)*s,0,.7],phase};}
     t-=duration;
   }
-  return {target:[0,0,.7],phase:'看向正中'};
+  return {target:[0,0,.7],phase:'Look straight ahead'};
 }
 
 export class DemoSimulation{
