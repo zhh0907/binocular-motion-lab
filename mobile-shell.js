@@ -43,6 +43,7 @@ function initialize() {
   const help=el('div','app-help');
   help.innerHTML=simulator?'<h2>Quick guide</h2><p>Keep your hand in the camera frame. The eye preview stays above the hand video in portrait, and beside it in landscape.</p><p>Setup contains your patient library and camera controls. More contains model selection, other target sources, calibration and movement details.</p>':'<h2>Record an exam</h2><p>Start the camera, wait for tracking, and select the current exam phase. Record starts both the original video and a video with eye measurements.</p><p>Use Setup to choose MP4 or WebM before recording. Open Clips to replay or download. Review contains movement evidence and the examiner form.</p><p>Eye positions are normalized, not angles. A tracking result alone does not establish an NIHSS score.</p>';
   const guide=el('a','button','Full guide ↗');guide.href='./guide.html';guide.target='_blank';guide.rel='noopener';help.append(guide);panes.Help.append(help);
+  if(simulator){const demo=el('a','button','3 clear demo cases ↗');demo.href='./demo.html';help.prepend(demo);}
   let active=false, timer=null, secondary=null;
   const blank=el('div','camera-empty','Start camera, then show your index finger');
   const extra=el('div','app-source-summary');

@@ -4,6 +4,10 @@ Browser-based binocular eye-motion simulation and gaze replay by [Honghao Zhao](
 
 **[Open live demo](https://zhh0907.github.io/binocular-motion-lab/)** · [User guide](https://zhh0907.github.io/binocular-motion-lab/guide.html) · [Camera calibration](https://zhh0907.github.io/binocular-motion-lab/calibration-guide.html)
 
+## Three clear demo cases
+
+**[Open the three-case demo](https://zhh0907.github.io/binocular-motion-lab/demo.html)**. Choose conjugate left-gaze limitation, left-eye adduction limitation, or left-eye abduction limitation. Each uses fixed strong impairment parameters and the same normal controller. A slow automatic target and a simultaneous normal-model reference make the differences visible; live fingertip input is also available. The demo never reads or changes your patient library. [Parameters, checks and medical scope](demo-notes.html).
+
 ## Overview
 
 Explore simulated eye movements, replay public gaze recordings, and inspect model comparisons in an interactive 3D workspace. This repository contains the browser demo and bundled inference assets; it is not a complete training-code release.
