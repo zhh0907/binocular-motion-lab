@@ -13,7 +13,7 @@ function initialize() {
   const shell = el('div','mobile-app');shell.id='mobileApp';shell.hidden=true;shell.dataset.app=simulator?'simulator':'gaze';
   const top = el('div','app-topbar');
   const brand = el('div','app-brand');brand.append(el('strong','',simulator?'Motion Lab':'Gaze Lab'),el('span','',simulator?'Hand → eyes':'Eye tracking · Research'));
-  const menu = el('button','app-menu','☰ Tools');menu.type='button';menu.setAttribute('aria-haspopup','dialog');menu.setAttribute('aria-controls','appDrawer');
+  const menu = el('button','app-menu',simulator?'Patient & settings':'☰ Tools');menu.type='button';menu.setAttribute('aria-haspopup','dialog');menu.setAttribute('aria-controls','appDrawer');
   top.append(brand,menu);
   const workspace=el('div','app-workspace');workspace.setAttribute('aria-label','Live workspace');
   const visuals=el('div','app-visuals');const details=el('div','app-details');
@@ -21,18 +21,19 @@ function initialize() {
   const foot=el('div','app-footnote',simulator?'On-device tracking · No video upload':'Research use · Examiner review required');
   workspace.append(visuals,details);shell.append(top,workspace,status,actions,foot);
   const drawer=document.createElement('dialog');drawer.id='appDrawer';drawer.className='app-drawer';drawer.setAttribute('aria-labelledby','drawerTitle');
-  const drawerHead=el('div','drawer-head');const title=el('h2','','Tools');title.id='drawerTitle';
+  const drawerHead=el('div','drawer-head');const title=el('h2','',simulator?'Patient & settings':'Tools');title.id='drawerTitle';
   const close=el('button','drawer-close','✕ Close');close.type='button';close.setAttribute('aria-label','Close tools');drawerHead.append(title,close);
   const tabs=el('nav','drawer-tabs');tabs.setAttribute('aria-label','Tool sections');
   const content=el('div','drawer-content');const panes={};
-  const names=simulator?['Setup','Scene','Results','Help']:['Setup','Clips','Review','Help'];
+  const names=simulator?['Setup','More']:['Setup','Clips','Review','Help'];
   for(const name of names){
     const button=el('button','',name);button.type='button';button.setAttribute('aria-controls','drawer'+name);
     const pane=el('section','drawer-pane');pane.id='drawer'+name;pane.setAttribute('aria-label',name);pane.hidden=true;
     button.onclick=()=>select(name);tabs.append(button);content.append(pane);panes[name]=pane;
   }
+  if(simulator){panes.Scene=panes.More;panes.Results=panes.More;panes.Help=panes.More;}
   drawer.append(drawerHead,tabs,content);document.body.append(shell,drawer);
-  function select(name){for(const [key,pane]of Object.entries(panes))pane.hidden=key!==name;for(const b of tabs.children)b.setAttribute('aria-pressed',String(b.textContent===name));content.scrollTop=0;window.dispatchEvent(new Event('resize'));}
+  function select(name){for(const key of names)panes[key].hidden=key!==name;for(const b of tabs.children)b.setAttribute('aria-pressed',String(b.textContent===name));content.scrollTop=0;window.dispatchEvent(new Event('resize'));}
   function open(name='Setup'){select(name);if(!drawer.open)drawer.showModal();menu.setAttribute('aria-expanded','true');close.focus();}
   function dismiss(){drawer.close();menu.setAttribute('aria-expanded','false');menu.focus({preventScroll:true});}
   menu.onclick=()=>open();close.onclick=dismiss;
@@ -40,7 +41,7 @@ function initialize() {
   drawer.addEventListener('close',()=>menu.setAttribute('aria-expanded','false'));
   function move(node,host){if(!node)return;if(!homes.has(node)){const marker=document.createComment('desktop position');node.before(marker);homes.set(node,marker);}host.append(node);}
   const help=el('div','app-help');
-  help.innerHTML=simulator?'<h2>Use the live view</h2><p>Keep your hand in the camera frame. The eye preview stays above the hand video in portrait, and beside it in landscape.</p><p>Setup contains the camera, model, replay, and calibration controls. Scene contains the optional 3D view. Results contains charts and training comparisons.</p>':'<h2>Record an exam</h2><p>Start the camera, wait for tracking, and select the current exam phase. Record starts both the original video and a video with eye measurements.</p><p>Use Setup to choose MP4 or WebM before recording. Open Clips to replay or download. Review contains movement evidence and the examiner form.</p><p>Eye positions are normalized, not angles. A tracking result alone does not establish an NIHSS score.</p>';
+  help.innerHTML=simulator?'<h2>Quick guide</h2><p>Keep your hand in the camera frame. The eye preview stays above the hand video in portrait, and beside it in landscape.</p><p>Setup contains your patient library and camera controls. More contains model selection, other target sources, calibration and movement details.</p>':'<h2>Record an exam</h2><p>Start the camera, wait for tracking, and select the current exam phase. Record starts both the original video and a video with eye measurements.</p><p>Use Setup to choose MP4 or WebM before recording. Open Clips to replay or download. Review contains movement evidence and the examiner form.</p><p>Eye positions are normalized, not angles. A tracking result alone does not establish an NIHSS score.</p>';
   const guide=el('a','button','Full guide ↗');guide.href='./guide.html';guide.target='_blank';guide.rel='noopener';help.append(guide);panes.Help.append(help);
   let active=false, timer=null, secondary=null;
   const blank=el('div','camera-empty','Start camera, then show your index finger');
@@ -52,11 +53,13 @@ function initialize() {
     move($('settings'),panes.Setup);
     if(simulator){
       const section=document.querySelector('main > section');
+      move($('advancedControls'),panes.More);
       move($('eyeFocus'),visuals);move($('cameraPanel'),visuals);move($('view'),panes.Scene);
       move($('cameraStatus'),status);move($('cameraStart'),cameraGroup);move($('cameraStop'),cameraGroup);
       move($('pause'),actions);actions.prepend(cameraGroup);move($('scrub'),details);details.append(extra);
       // Includes asynchronously inserted comparison panels without copying them.
       move(section,panes.Results);
+      panes.More.append(help);
       $('cameraPreview').append(blank);
     }else{
       move(document.querySelector('#live .stage'),visuals);

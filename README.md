@@ -9,14 +9,14 @@ Browser-based binocular eye-motion simulation and gaze replay by [Honghao Zhao](
 Explore simulated eye movements, replay public gaze recordings, and inspect model comparisons in an interactive 3D workspace. This repository contains the browser demo and bundled inference assets; it is not a complete training-code release.
 
 - Interactive binocular simulation, target controls, and gaze replay.
-- Model comparisons and plots available through **Tools → Results**.
+- Movement details available on demand; historical model evaluations linked from the model guide.
 - Optional camera controls and screen/camera calibration.
 - Responsive workspace for desktop and mobile browsers.
 - Numbered, persistent virtual-patient libraries with stratified sampling and deterministic horizontal impairment candidates. No NIHSS scores are assigned.
 
 ## Virtual patients
 
-Open **Tools → Setup → Virtual patients** (desktop: settings sidebar). Select a pattern and side, enter **30**, and generate a batch. Enter **17** or **P000017** to activate that saved patient for all target inputs. New batches append IDs; existing parameters do not change. Export the library JSON for backup or transfer to another browser. The normal reference can be restored with one button.
+Open **Patient & settings → Setup** (desktop: settings sidebar). Select a pattern and side, enter **30**, and generate a batch. Enter **17** or **P000017** to activate that saved patient for all target inputs. New batches append IDs; existing parameters do not change. Export the library JSON for backup or transfer to another browser. The normal reference can be restored with one button.
 
 [Patient workflow and mathematical model](https://zhh0907.github.io/binocular-motion-lab/patient-guide.html) · [中文说明](PATIENT_MODEL.zh-CN.md)
 
@@ -24,9 +24,13 @@ The layer is a directional drive-saturation / overdamped-response approximation.
 
 Checks: `node --test tests/patients.test.mjs`; browser integration: `node tests/patients-browser.cjs` (Playwright + Chrome). These checks do not validate medical realism or physical camera performance.
 
+## Selected movement models
+
+The app loads only **GRU · Expanded data** (default) and **GRU · Long training**, plus a geometric reference. Model selection, calibration and alternate inputs live in **Advanced settings** (mobile: **More**). Historical models and evaluations remain available in the repository. [Selection rationale and metrics](model-selection.html).
+
 ## Quick start
 
-Open the live demo; no installation or GitHub account is needed. Use **Tools** for model selection, replay, calibration, and results. Camera access is optional and requires HTTPS or localhost.
+Open the live demo; no installation or GitHub account is needed. Use **Patient & settings** on mobile. Less-used controls live under **More** / **Advanced settings**. Camera access is optional and requires HTTPS or localhost.
 
 For local use, serve this repository with a static HTTP server, for example:
 
@@ -41,7 +45,7 @@ Then open `http://localhost:8000/`. Keep `vendor/`, `recordings/`, and the model
 | Files | Purpose |
 | --- | --- |
 | `index.html`, `app.js`, `engine.js` | Browser application and simulation |
-| `models.json`, `model.json` | Bundled model assets |
+| `models-selected.json` | The two active GRU models and simulation rate |
 | `comparison.json`, `report.json` | Evaluation summaries |
 | `recordings/` | Public gaze replay excerpts |
 | `camera*.js`, `calibration*.js` | Camera and calibration utilities |

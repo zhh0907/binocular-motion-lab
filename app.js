@@ -1,18 +1,18 @@
-import {simplifyUI} from './simplify-ui.js';
-import {mountPatientControls,downloadJSON} from './patient-ui.mjs';
+import {simplifyUI} from './simplify-ui.js?v=simple2';
+import {mountPatientControls,downloadJSON} from './patient-ui.mjs?v=simple2';
 import {MODEL_VERSION,PLANT} from './patient-model.mjs';
 import {FingerCamera} from './camera.js?v=review7';
 import {ScreenCalibration} from './calibration.js';
 import {rotateCameraRay} from './calibration-math.js';
 import * as T from './vendor/three.module.js';
-import {GRU,Rule,LearnedModel,desired,ray,angularError,rad} from './engine.js';
+import {LearnedModel,desired,ray,angularError,rad} from './engine.js';
 const $=id=>document.getElementById(id);
 const calibration=new ScreenCalibration();
 const finger=new FingerCamera(calibration),isCamera=()=>$('source').value==='camera';
 let wasTracked=false;
 $('camY').oninput=()=>$('camYValue').textContent=Number($('camY').value).toFixed(2)+' m';
 for(const id of ['cameraDepth','cameraFov','cameraSmooth'])$(id).oninput=()=>$(id+'Value').textContent=id==='cameraDepth'?Number($(id).value).toFixed(2)+' m':$(id).value+(id==='cameraFov'?'°':' ms');
-const [bundle,report]=await Promise.all(['model.json','report.json'].map(async p=>{const r=await fetch(p,{cache:'no-store'});if(!r.ok)throw Error(p+' unavailable');return r.json();}));
+const [{fps,models},report]=await Promise.all(['models-selected.json','report.json'].map(async p=>{const r=await fetch(p,{cache:'no-store'});if(!r.ok)throw Error(p+' unavailable');return r.json();}));
 // Replay is optional: avoid downloading 37 MB before a phone can use the camera.
 const records=[];
 async function loadRecordings(){
@@ -27,14 +27,11 @@ async function loadRecordings(){
  records.push(...rows);
  records.forEach((r,i)=>$('record').add(new Option(`${r.task} · Subject ${r.subject} · ${r.time[0].toFixed(1)}s`,i)));
 }
-const [models,comparison]=await Promise.all(['models.json','comparison.json'].map(async p=>(await fetch(p,{cache:'no-store'})).json()));
 const learned=Object.fromEntries(Object.entries(models).map(([k,v])=>[k,new LearnedModel(v)]));
-const labels={mlp:'MLP (no motion memory)',lstm:'LSTM',gru:'GRU (three-seed study)',gru_dynamics:'GRU + dynamics loss'};
-labels.gru_expanded_520='GRU + dynamics loss · Expanded binocular data (520 epochs, validation-selected)';
-for(const k of ['mlp','lstm','gru','gru_dynamics'])labels[k+'_long']=labels[k]+' · Longer training (up to 120 epochs)';
-for(const k of Object.keys(models))$('mode').add(new Option(labels[k],k+'_new'));
-$('mode').add(new Option('Rule model + training-set bias correction','rule_bias'));
-const fps=bundle.fps,gru=new GRU(bundle.weights),rule=new Rule(bundle.rule,fps);
+const labels={gru_expanded_520:'GRU · Expanded data (default)',gru_dynamics_long:'GRU · Long training'};
+$('mode').replaceChildren(...Object.entries(labels).map(([key,title])=>new Option(title,key+'_new')),
+ new Option('Geometric reference','ideal'),new Option('Recorded gaze (replay only)','gaze'));
+$('mode').value='gru_expanded_520_new';
 const scene=new T.Scene();scene.background=new T.Color('#101925');scene.add(new T.HemisphereLight(0xd5eaff,0x253245,2.6));const sun=new T.DirectionalLight(0xffffff,3);sun.position.set(-1,2,2);scene.add(sun);
 const grid=new T.GridHelper(4,40,0x3c5765,0x22323e);grid.position.y=-.42;scene.add(grid);
 const external=new T.PerspectiveCamera(42,1,.01,20),chestCamera=new T.PerspectiveCamera(60,1.6,.01,10);
@@ -76,9 +73,9 @@ eyes.forEach(e=>e.root.traverse(o=>o.layers.enable(2)));scene.children.filter(o=
 let playing=true,frame=0,elapsed=0,acc=0,prevTarget=null,current=null,history=[],exportRows=[],runInfo=null;
 const patients=mountPatientControls({onChange:()=>reset()});
 const record=()=>records[+$('record').value||0],isData=()=>$('source').value==='data';
-function reset(){frame=0;elapsed=0;acc=0;prevTarget=null;current=null;history=[];exportRows=[];runInfo=null;patients.layer.reset();gru.reset();rule.reset();Object.values(learned).forEach(m=>m.reset());}
+function reset(){frame=0;elapsed=0;acc=0;prevTarget=null;current=null;history=[];exportRows=[];runInfo=null;patients.layer.reset();Object.values(learned).forEach(m=>m.reset());}
 function cameraProvenance(){$('provenance').textContent=calibration.enabled?'RGB fingertip tracking uses this computer’s calibration profile. Extrinsics are manually measured and depth is assumed; the eye-motion models have not been validated on real fingertip tracking.':'RGB fingertip tracking is active. Depth and camera intrinsics are assumed; the eye model was trained on VR target tasks and has not been validated for real fingertip following.';}
-function updateControls(){const data=isData(),cam=isCamera();if(!cam)finger.stop();$('cameraControls').hidden=!cam;$('cameraPanel').hidden=!cam;$('speed').disabled=cam;$('recordControls').hidden=!data;$('syntheticControls').hidden=data||cam;$('speedControls').hidden=cam;$('scrub').hidden=!data;wasTracked=false;for(const id of ['x','y','z','path'])$(id).disabled=data||cam;$('calibrationPanel').hidden=!cam;$('record').disabled=!data;$('mode').options[0].disabled=!data;if(!data&&$('mode').value==='gaze')$('mode').value='rule';$('scrub').disabled=!data;$('provenance').textContent=data?`GazeBaseVR · ${record().file}. Continuous valid segment on a 250 Hz grid; human recordings include measurement noise.`:'Synthetic trajectories explore generalization; vertical and circular motion have not been validated against human behavior.';if(cam)cameraProvenance();for(const o of $('mode').options)o.disabled=data?!Array.isArray(record()[o.value]):o.value==='gaze';if(data&&!Array.isArray(record()[$('mode').value]))$('mode').value='rule';reset();calibration.refresh();}
+function updateControls(){const data=isData(),cam=isCamera();if(!cam)finger.stop();$('cameraControls').hidden=!cam;$('cameraPanel').hidden=!cam;$('speed').disabled=cam;$('recordControls').hidden=!data;$('syntheticControls').hidden=data||cam;$('speedControls').hidden=cam;$('scrub').hidden=!data;wasTracked=false;for(const id of ['x','y','z','path'])$(id).disabled=data||cam;$('calibrationPanel').hidden=!cam;$('record').disabled=!data;if(!data&&$('mode').value==='gaze')$('mode').value='gru_expanded_520_new';$('scrub').disabled=!data;$('provenance').textContent=data?`GazeBaseVR · ${record().file}. Continuous valid segment on a 250 Hz grid; human recordings include measurement noise.`:'Synthetic trajectories explore generalization; vertical and circular motion have not been validated against human behavior.';if(cam)cameraProvenance();for(const o of $('mode').options){o.hidden=o.value==='gaze'&&!data;o.disabled=data?!Array.isArray(record()[o.value]):o.value==='gaze';}if(data&&!Array.isArray(record()[$('mode').value]))$('mode').value='ideal';reset();calibration.refresh();}
 for(const id of ['record','mode','path'])$(id).onchange=updateControls;
 let previousSource=$('source').value;
 const replayStatus=document.createElement('p');replayStatus.className='help';replayStatus.id='replayStatus';replayStatus.setAttribute('role','status');replayStatus.hidden=true;$('source').after(replayStatus);
@@ -94,7 +91,7 @@ $('source').onchange=async()=>{
 };
 window.addEventListener('calibrationchange',()=>{reset();calibration.refresh();if(isCamera())cameraProvenance();});
 for(const id of ['x','y','z'])$(id).oninput=()=>{$(id+'v').textContent=(+$(id).value).toFixed(2);};
-$('pause').onclick=()=>{playing=!playing;$('pause').textContent=playing?'Pause eye motion':'Resume eye motion';};$('reset').onclick=reset;
+$('pause').onclick=()=>{playing=!playing;$('pause').textContent=playing?'Pause':'Resume';};$('reset').onclick=reset;
 $('scrub').oninput=()=>{if(isData()){
  frame=Math.floor(+$('scrub').value/1000*(record().time.length-1));history=[];exportRows=[];runInfo=null;current=null;
  patients.layer.reset();
@@ -108,10 +105,10 @@ function step(advance=true){let p,e,a,ideal,human=null,t;const mode=$('mode').va
    // No synthetic observations while the finger is absent. Freeze patient state as well.
    if(!current)current={p:[0,0,1],e:[[-.032,0,0],[.032,0,0]],a:[0,0,0,0],baseline:[0,0,0,0],ideal:[0,0,0,0],human:null,t:elapsed};
    return;
- }else if(!wasTracked){prevTarget=null;gru.reset();rule.reset();Object.values(learned).forEach(m=>m.reset());wasTracked=true;}}
+ }else if(!wasTracked){prevTarget=null;Object.values(learned).forEach(m=>m.reset());wasTracked=true;}}
  if(isData()&&frame===0&&current&&current.t>0){patients.layer.reset();history=[];exportRows=[];runInfo=null;}
  if(isData()){const r=record();frame=Math.min(frame,r.time.length-1);p=r.target[frame];e=r.eyes;ideal=r.ideal[frame];human=r.gaze[frame];a=r[mode==='ideal'?'ideal':mode][frame];t=r.time[frame]-r.time[0];if(advance)frame=(frame+1)%r.time.length;
- }else{t=elapsed;p=isCamera()?finger.target():synthetic(t);if(!p){if(current)return;p=[0,0,1];}e=[[-.032,0,0],[.032,0,0]];ideal=desired(p,e);const x=ideal.map(v=>v/30).concat(ideal.map((v,i)=>Math.max(-600,Math.min(600,prevTarget?(v-prevTarget[i])*fps:0))/300));const gp=gru.step(x),rp=rule.step(ideal);let lp=null;if(mode.endsWith('_new'))lp=learned[mode.slice(0,-4)].step(x);prevTarget=ideal;a=lp??(mode==='gru'?gp:mode==='ideal'?ideal:mode==='rule_bias'?rp.map((v,i)=>v+comparison.rule_bias[i]):rp);if(advance)elapsed+=1/fps;}
+ }else{t=elapsed;p=isCamera()?finger.target():synthetic(t);if(!p){if(current)return;p=[0,0,1];}e=[[-.032,0,0],[.032,0,0]];ideal=desired(p,e);const x=ideal.map(v=>v/30).concat(ideal.map((v,i)=>Math.max(-600,Math.min(600,prevTarget?(v-prevTarget[i])*fps:0))/300));prevTarget=ideal;a=mode.endsWith('_new')?learned[mode.slice(0,-4)].step(x):ideal;if(advance)elapsed+=1/fps;}
  const baseline=[...a];
  if(!runInfo)runInfo={...patients.provenance,source:$('source').value,controller:mode,fps,
    layerInitialState:patients.layer.snapshot(),plant:{...PLANT},
@@ -143,16 +140,6 @@ function exportRun(){return {schema:'gaze-patient-run-v1',modelVersion:MODEL_VER
   limitSeconds:120,bufferFull:exportRows.length>=fps*120};}
 $('patientRunExport').onclick=()=>downloadJSON(exportRun(),`gaze-run-${patients.active?.id||'reference'}.json`);
 $('export').onclick=()=>{const txt='time_s,target_x_m,target_y_m,target_z_m,left_yaw_deg,left_pitch_deg,right_yaw_deg,right_pitch_deg,ideal_left_yaw,ideal_left_pitch,ideal_right_yaw,ideal_right_pitch,reference_left_yaw,reference_left_pitch,reference_right_yaw,reference_right_pitch,patient_id,library_id,patient_model_version\n'+exportRows.map(r=>[...r,patients.active?.id||'reference',patients.library.libraryId,MODEL_VERSION].join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));a.download=`eye_trace_${patients.active?.id||'reference'}_${$('mode').value}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
-const names={geometry:'Ideal geometric gaze',rule:'Rule model',rule_bias:'Rule model + bias correction',gru_original:'Original GRU',...labels};
-const filter=document.createElement('select');filter.id='taskFilter';filter.setAttribute('aria-label','Evaluation task');filter.style.marginBottom='12px';
-for(const [v,t] of [['all','All tasks'],['PUR','PUR · Smooth pursuit'],['RAN','RAN · Saccades'],['VRG','VRG · Vergence']])filter.add(new Option(t,v));
-$('results').before(filter);
-function renderResults(){const task=filter.value;const entries=comparison.overall.map(row=>{const m=task==='all'?row.mean:comparison.by_task.find(t=>t.method===row.method&&t.task===task);return {...row,display:m};});
- const keys=['angle_mae_deg','velocity_mae_deg_s','velocity_20ms_mae_deg_s','horizontal_vergence_mae_deg'];
- const minima=keys.map(k=>Math.min(...entries.map(r=>r.display[k])));
- $('results').innerHTML='<div style="overflow-x:auto"><table><tr><th>Method</th><th>Mean angular error °</th><th>Velocity error °/s</th><th>20 ms velocity error °/s</th><th>Vergence error °</th></tr>'+entries.map(r=>'<tr><td>'+names[r.method]+(r.seeds.length>1?' <small>(3 random seeds)</small>':'')+'</td>'+keys.map((k,i)=>'<td style="'+(r.display[k]===minima[i]?'color:#79d9b6;font-weight:600':'')+'">'+r.display[k].toFixed(3)+(task==='all'&&r.seeds.length>1?' <small>± '+r.std[k].toFixed(3)+'</small>':'')+'</td>').join('')+'</tr>').join('')+'</table></div><p class="muted">The test set contains 62 subjects; lower errors are better. Overall values are means ± population SD across training seeds; per-task values are seed means. Green marks each column’s minimum. Rule baselines have one run.</p><p class="muted">Simulator seeds selected by validation MSE: '+Object.entries(comparison.selected_seeds).map(([k,v])=>labels[k]+' = '+v).join('; ')+'. No seed ensemble is used. The test set has been reused, so this comparison is exploratory.</p>';
-}
-filter.onchange=renderResults;renderResults();
 updateControls();let last=performance.now();function animate(now){if(playing){acc+=Math.min((now-last)/1000,.1)*(isCamera()?1:+$('speed').value);while(acc>=1/fps){step();acc-=1/fps;}}last=now;render();requestAnimationFrame(animate);}requestAnimationFrame(animate);
 simplifyUI();
 window.lab={scene,eyes,records,report,finger,patients,exportRun,get current(){return current;}};
