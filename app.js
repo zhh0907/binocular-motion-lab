@@ -1,4 +1,6 @@
 import {simplifyUI} from './simplify-ui.js';
+import {mountPatientControls,downloadJSON} from './patient-ui.mjs';
+import {MODEL_VERSION,PLANT} from './patient-model.mjs';
 import {FingerCamera} from './camera.js?v=review7';
 import {ScreenCalibration} from './calibration.js';
 import {rotateCameraRay} from './calibration-math.js';
@@ -71,11 +73,12 @@ const eyeInset=$('eyeFocus');
 const eyeRenderer=new T.WebGLRenderer({antialias:true});eyeRenderer.setPixelRatio(Math.min(devicePixelRatio,2));eyeInset.prepend(eyeRenderer.domElement);
 const eyeCamera=new T.OrthographicCamera(-.065,.065,.041,-.041,.01,2);eyeCamera.position.set(0,0,.18);eyeCamera.lookAt(0,0,-.02);eyeCamera.layers.set(2);
 eyes.forEach(e=>e.root.traverse(o=>o.layers.enable(2)));scene.children.filter(o=>o.isLight).forEach(o=>o.layers.enable(2));
-let playing=true,frame=0,elapsed=0,acc=0,prevTarget=null,current=null,history=[],exportRows=[];
+let playing=true,frame=0,elapsed=0,acc=0,prevTarget=null,current=null,history=[],exportRows=[],runInfo=null;
+const patients=mountPatientControls({onChange:()=>reset()});
 const record=()=>records[+$('record').value||0],isData=()=>$('source').value==='data';
-function reset(){frame=0;elapsed=0;acc=0;prevTarget=null;current=null;history=[];exportRows=[];gru.reset();rule.reset();Object.values(learned).forEach(m=>m.reset());}
+function reset(){frame=0;elapsed=0;acc=0;prevTarget=null;current=null;history=[];exportRows=[];runInfo=null;patients.layer.reset();gru.reset();rule.reset();Object.values(learned).forEach(m=>m.reset());}
 function cameraProvenance(){$('provenance').textContent=calibration.enabled?'RGB fingertip tracking uses this computer’s calibration profile. Extrinsics are manually measured and depth is assumed; the eye-motion models have not been validated on real fingertip tracking.':'RGB fingertip tracking is active. Depth and camera intrinsics are assumed; the eye model was trained on VR target tasks and has not been validated for real fingertip following.';}
-function updateControls(){const data=isData(),cam=isCamera();if(!cam)finger.stop();$('cameraControls').hidden=!cam;$('cameraPanel').hidden=!cam;$('speed').disabled=cam;$('recordControls').hidden=!data;$('syntheticControls').hidden=data||cam;$('speedControls').hidden=cam;$('scrub').hidden=!data;wasTracked=false;for(const id of ['x','y','z','path'])$(id).disabled=data||cam;$('calibrationPanel').hidden=!cam;$('record').disabled=!data;$('mode').options[0].disabled=!data;if(!data&&$('mode').value==='gaze')$('mode').value='rule';$('scrub').disabled=!data;$('provenance').textContent=data?`GazeBaseVR · ${record().file}. Continuous valid segment on a 250 Hz grid; human recordings include measurement noise.`:'Synthetic trajectories explore generalization; vertical and circular motion have not been validated against human behavior.';if(cam)cameraProvenance();reset();calibration.refresh();}
+function updateControls(){const data=isData(),cam=isCamera();if(!cam)finger.stop();$('cameraControls').hidden=!cam;$('cameraPanel').hidden=!cam;$('speed').disabled=cam;$('recordControls').hidden=!data;$('syntheticControls').hidden=data||cam;$('speedControls').hidden=cam;$('scrub').hidden=!data;wasTracked=false;for(const id of ['x','y','z','path'])$(id).disabled=data||cam;$('calibrationPanel').hidden=!cam;$('record').disabled=!data;$('mode').options[0].disabled=!data;if(!data&&$('mode').value==='gaze')$('mode').value='rule';$('scrub').disabled=!data;$('provenance').textContent=data?`GazeBaseVR · ${record().file}. Continuous valid segment on a 250 Hz grid; human recordings include measurement noise.`:'Synthetic trajectories explore generalization; vertical and circular motion have not been validated against human behavior.';if(cam)cameraProvenance();for(const o of $('mode').options)o.disabled=data?!Array.isArray(record()[o.value]):o.value==='gaze';if(data&&!Array.isArray(record()[$('mode').value]))$('mode').value='rule';reset();calibration.refresh();}
 for(const id of ['record','mode','path'])$(id).onchange=updateControls;
 let previousSource=$('source').value;
 const replayStatus=document.createElement('p');replayStatus.className='help';replayStatus.id='replayStatus';replayStatus.setAttribute('role','status');replayStatus.hidden=true;$('source').after(replayStatus);
@@ -92,14 +95,32 @@ $('source').onchange=async()=>{
 window.addEventListener('calibrationchange',()=>{reset();calibration.refresh();if(isCamera())cameraProvenance();});
 for(const id of ['x','y','z'])$(id).oninput=()=>{$(id+'v').textContent=(+$(id).value).toFixed(2);};
 $('pause').onclick=()=>{playing=!playing;$('pause').textContent=playing?'Pause eye motion':'Resume eye motion';};$('reset').onclick=reset;
-$('scrub').oninput=()=>{if(isData()){frame=Math.floor(+$('scrub').value/1000*(record().time.length-1));history=[];current=null;step(false);}};
+$('scrub').oninput=()=>{if(isData()){
+ frame=Math.floor(+$('scrub').value/1000*(record().time.length-1));history=[];exportRows=[];runInfo=null;current=null;
+ patients.layer.reset();
+ // Reconstruct history-dependent patient state instead of applying a static angle offset.
+ if(patients.active)for(let i=0;i<frame;i++)patients.layer.step(record()[$('mode').value][i],1/fps);
+ step(false);
+}};
 function synthetic(t){const x=+$('x').value,y=+$('y').value,z=+$('z').value;switch($('path').value){case'horizontal':return[x+.2*Math.sin(t*1.2),y,z];case'vertical':return[x,y+.15*Math.sin(t*1.2),z];case'depth':return[x,y,Math.max(.22,z+.2*Math.sin(t))];case'circle':return[x+.2*Math.cos(t),y+.15*Math.sin(t),z];case'step':return[x+(Math.floor(t/2)%2?.2:-.2),y,z];default:return[x,y,z];}}
 function step(advance=true){let p,e,a,ideal,human=null,t;const mode=$('mode').value;
- if(isCamera()){if(!finger.tracked){wasTracked=false;if(current)return;}else if(!wasTracked){prevTarget=null;gru.reset();rule.reset();Object.values(learned).forEach(m=>m.reset());wasTracked=true;}}
+ if(isCamera()){if(!finger.tracked){wasTracked=false;
+   // No synthetic observations while the finger is absent. Freeze patient state as well.
+   if(!current)current={p:[0,0,1],e:[[-.032,0,0],[.032,0,0]],a:[0,0,0,0],baseline:[0,0,0,0],ideal:[0,0,0,0],human:null,t:elapsed};
+   return;
+ }else if(!wasTracked){prevTarget=null;gru.reset();rule.reset();Object.values(learned).forEach(m=>m.reset());wasTracked=true;}}
+ if(isData()&&frame===0&&current&&current.t>0){patients.layer.reset();history=[];exportRows=[];runInfo=null;}
  if(isData()){const r=record();frame=Math.min(frame,r.time.length-1);p=r.target[frame];e=r.eyes;ideal=r.ideal[frame];human=r.gaze[frame];a=r[mode==='ideal'?'ideal':mode][frame];t=r.time[frame]-r.time[0];if(advance)frame=(frame+1)%r.time.length;
  }else{t=elapsed;p=isCamera()?finger.target():synthetic(t);if(!p){if(current)return;p=[0,0,1];}e=[[-.032,0,0],[.032,0,0]];ideal=desired(p,e);const x=ideal.map(v=>v/30).concat(ideal.map((v,i)=>Math.max(-600,Math.min(600,prevTarget?(v-prevTarget[i])*fps:0))/300));const gp=gru.step(x),rp=rule.step(ideal);let lp=null;if(mode.endsWith('_new'))lp=learned[mode.slice(0,-4)].step(x);prevTarget=ideal;a=lp??(mode==='gru'?gp:mode==='ideal'?ideal:mode==='rule_bias'?rp.map((v,i)=>v+comparison.rule_bias[i]):rp);if(advance)elapsed+=1/fps;}
- current={p,e,a,ideal,human,t};history.push([t,ideal[0],a[0],human?.[0]]);if(history.length>fps*6)history.shift();if(exportRows.length<fps*120)exportRows.push([t,...p,...a,...ideal]);}
-function render(){if(!current)step(false);const {p,e,a,ideal,t}=current;target.position.set(...p);target.visible=!isCamera()||!!finger.tracked;
+ const baseline=[...a];
+ if(!runInfo)runInfo={...patients.provenance,source:$('source').value,controller:mode,fps,
+   layerInitialState:patients.layer.snapshot(),plant:{...PLANT},
+   coordinates:'degrees; +yaw = simulated person right; [left yaw,left pitch,right yaw,right pitch]',
+   settings:Object.fromEntries(['path','x','y','z','cameraDepth','cameraFov','cameraSmooth','camY'].map(id=>[id,$(id).value])),
+   recording:isData()?record().file:null,calibrationEnabled:calibration.enabled};
+ a=patients.layer.step(baseline,1/fps);
+ current={p,e,a,baseline,ideal,human,t,patientId:patients.active?.id||null};history.push([t,ideal[0],a[0],human?.[0]]);if(history.length>fps*6)history.shift();if(exportRows.length<fps*120)exportRows.push([t,...p,...a,...ideal,...baseline]);}
+function render(){if(!current)step(false);$('patientRunExport').disabled=!exportRows.length;$('export').disabled=!exportRows.length;const {p,e,a,ideal,t}=current;target.position.set(...p);target.visible=!isCamera()||!!finger.tracked;
  for(let i=0;i<2;i++){eyes[i].root.position.set(...e[i]);eyes[i].yaw.rotation.set(0,rad(a[2*i]),0);eyes[i].pitch.rotation.set(-rad(a[2*i+1]),0,0);const d=ray(a.slice(2*i,2*i+2)),len=Math.hypot(...p.map((v,j)=>v-e[i][j]))+.08;const points=[new T.Vector3(...e[i]),new T.Vector3(...e[i].map((v,j)=>v+d[j]*len))];lines[i].geometry.setFromPoints(points);}
  chestCamera.position.set(0,-+$('camY').value,0);chestCamera.up.set(0,1,0);chestCamera.lookAt(0,chestCamera.position.y,1);
  if(isCamera()&&calibration.enabled){const c=calibration.profile.camera,d=rotateCameraRay([0,0,1],c),up=rotateCameraRay([0,1,0],c);chestCamera.position.set(c.x,c.y,c.z);chestCamera.up.set(...up);chestCamera.lookAt(c.x+d[0],c.y+d[1],c.z+d[2]);}
@@ -116,7 +137,12 @@ function render(){if(!current)step(false);const {p,e,a,ideal,t}=current;target.p
  if(isCamera()&&!finger.tracked){for(const id of ['leftError','rightError','vergence'])$(id).textContent='—';$('visible').textContent='Not tracked';$('status').textContent='Waiting for fingertip · Holding eye position · Yaw / pitch only';}
  if(isData())$('scrub').value=frame/(record().time.length-1)*1000;drawPlot();}
 function drawPlot(){const c=$('plot'),w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;c.width=w*devicePixelRatio;c.height=h*devicePixelRatio;const ctx=c.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);ctx.fillStyle='#91a2b8';ctx.font='10px Segoe UI';for(const y of [-30,0,30]){const yy=h/2-y*h/80;ctx.strokeStyle='#293649';ctx.beginPath();ctx.moveTo(30,yy);ctx.lineTo(w,yy);ctx.stroke();ctx.fillText(y+'°',0,yy-3);}if(history.length<2)return;const end=history.at(-1)[0],start=end-6;['#ffc56b','#6adac3','#be9cff'].forEach((col,j)=>{ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.beginPath();let pen=false;for(const r of history){if(r[j+1]==null){pen=false;continue;}const x=30+(r[0]-start)/6*(w-30),y=h/2-r[j+1]*h/80;if(pen)ctx.lineTo(x,y);else ctx.moveTo(x,y);pen=true;}ctx.stroke();});}
-$('export').onclick=()=>{const txt='time_s,target_x_m,target_y_m,target_z_m,left_yaw_deg,left_pitch_deg,right_yaw_deg,right_pitch_deg,ideal_left_yaw,ideal_left_pitch,ideal_right_yaw,ideal_right_pitch\n'+exportRows.map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));a.download=`eye_trace_${$('mode').value}.csv`;a.click();URL.revokeObjectURL(a.href);};
+function exportRun(){return {schema:'gaze-patient-run-v1',modelVersion:MODEL_VERSION,run:runInfo,
+  samples:exportRows.map((r,i)=>({sample:i,timeSeconds:r[0],dtSeconds:1/fps,target:r.slice(1,4),
+    outputAngles:r.slice(4,8),idealAngles:r.slice(8,12),referenceAngles:r.slice(12,16)})),
+  limitSeconds:120,bufferFull:exportRows.length>=fps*120};}
+$('patientRunExport').onclick=()=>downloadJSON(exportRun(),`gaze-run-${patients.active?.id||'reference'}.json`);
+$('export').onclick=()=>{const txt='time_s,target_x_m,target_y_m,target_z_m,left_yaw_deg,left_pitch_deg,right_yaw_deg,right_pitch_deg,ideal_left_yaw,ideal_left_pitch,ideal_right_yaw,ideal_right_pitch,reference_left_yaw,reference_left_pitch,reference_right_yaw,reference_right_pitch,patient_id,library_id,patient_model_version\n'+exportRows.map(r=>[...r,patients.active?.id||'reference',patients.library.libraryId,MODEL_VERSION].join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));a.download=`eye_trace_${patients.active?.id||'reference'}_${$('mode').value}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
 const names={geometry:'Ideal geometric gaze',rule:'Rule model',rule_bias:'Rule model + bias correction',gru_original:'Original GRU',...labels};
 const filter=document.createElement('select');filter.id='taskFilter';filter.setAttribute('aria-label','Evaluation task');filter.style.marginBottom='12px';
 for(const [v,t] of [['all','All tasks'],['PUR','PUR · Smooth pursuit'],['RAN','RAN · Saccades'],['VRG','VRG · Vergence']])filter.add(new Option(t,v));
@@ -129,4 +155,4 @@ function renderResults(){const task=filter.value;const entries=comparison.overal
 filter.onchange=renderResults;renderResults();
 updateControls();let last=performance.now();function animate(now){if(playing){acc+=Math.min((now-last)/1000,.1)*(isCamera()?1:+$('speed').value);while(acc>=1/fps){step();acc-=1/fps;}}last=now;render();requestAnimationFrame(animate);}requestAnimationFrame(animate);
 simplifyUI();
-window.lab={scene,eyes,records,report,finger,get current(){return current;}};
+window.lab={scene,eyes,records,report,finger,patients,exportRun,get current(){return current;}};

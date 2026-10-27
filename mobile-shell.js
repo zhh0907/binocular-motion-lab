@@ -89,7 +89,7 @@ function initialize() {
     if(simulator){
       const source=$('source').value,camera=source==='camera';shell.dataset.source=source;
       const host=camera?panes.Scene:visuals;if($('view').parentElement!==host)host.append($('view'));
-      cameraGroup.hidden=!camera;blank.hidden=!!$('cameraVideo').srcObject;
+      cameraGroup.hidden=!camera;blank.hidden=!!$('cameraVideo').srcObject;blank.style.transform=$('cameraPreview').style.transform==='scaleX(-1)'?'scaleX(-1)':'none';
       $('cameraStatus').hidden=!camera;
       text(extra,camera?(($('cameraPreview').dataset.facing==='environment'?'Rear camera · Natural preview':'Front camera · Mirror preview')+' · Yellow = fingertip'):source==='data'?'Human gaze replay · Change recording in Tools':'Virtual target · Change motion in Tools');
     }else{

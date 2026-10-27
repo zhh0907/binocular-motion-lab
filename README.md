@@ -12,6 +12,17 @@ Explore simulated eye movements, replay public gaze recordings, and inspect mode
 - Model comparisons and plots available through **Tools → Results**.
 - Optional camera controls and screen/camera calibration.
 - Responsive workspace for desktop and mobile browsers.
+- Numbered, persistent virtual-patient libraries with stratified sampling and deterministic horizontal impairment candidates. No NIHSS scores are assigned.
+
+## Virtual patients
+
+Open **Tools → Setup → Virtual patients** (desktop: settings sidebar). Select a pattern and side, enter **30**, and generate a batch. Enter **17** or **P000017** to activate that saved patient for all target inputs. New batches append IDs; existing parameters do not change. Export the library JSON for backup or transfer to another browser. The normal reference can be restored with one button.
+
+[Patient workflow and mathematical model](https://zhh0907.github.io/binocular-motion-lab/patient-guide.html) · [中文说明](PATIENT_MODEL.zh-CN.md)
+
+The layer is a directional drive-saturation / overdamped-response approximation. Vertical output is preserved, and arbitrary target motion is supported. Parameters and ranges are engineering exploration choices, not validated clinical cutoffs. Exported run JSON includes the patient, initial state and reference-angle sequence for reproduction; CSV includes both reference and altered angles. Patient parameters are fixed, but different finger paths produce different trajectories. See the guide for reset, storage and 120-second export-buffer behavior.
+
+Checks: `node --test tests/patients.test.mjs`; browser integration: `node tests/patients-browser.cjs` (Playwright + Chrome). These checks do not validate medical realism or physical camera performance.
 
 ## Quick start
 
